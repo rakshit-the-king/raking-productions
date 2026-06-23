@@ -3,665 +3,466 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Raking Productions</title>
+<title>Power Hunter Series</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:wght@700;900&family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
-    --bg: #0a0a0f; --bg2: #12121a; --bg3: #1a1a26; --card: #1e1e2e;
-    --border: rgba(255,255,255,0.08); --accent: #7c3aed; --accent2: #a855f7;
-    --accent3: #c084fc; --text: #f1f0ff; --muted: #9ca3af;
-    --gold: #f59e0b; --green: #10b981; --red: #ef4444; --blue: #3b82f6;
+    --bg: #ffffff;
+    --bg2: #f6f3fc;
+    --bg3: #eee6fb;
+    --line: rgba(124,58,237,0.18);
+    --purple: #7c3aed;
+    --purple2: #a855f7;
+    --purple-deep: #5b21b6;
+    --text: #1f1530;
+    --muted: #756e8a;
+    --locked: #d9d3ea;
   }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Manrope', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+    position: relative;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
 
-  /* LOADER */
-  #loader { position: fixed; inset: 0; background: #050508; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 32px; }
-  .loader-logo { font-size: 2.4rem; font-weight: 800; letter-spacing: -1px; }
-  .loader-logo span { color: var(--accent2); }
-  .spinner { width: 80px; height: 80px; border-radius: 50%; border: 3px solid rgba(168,85,247,0.15); border-top-color: var(--accent2); animation: spin 1s linear infinite; }
+  /* ===== LOADER OVERLAY (used for every page entry / exit) ===== */
+  .loader-overlay {
+    position: fixed; inset: 0; z-index: 900; background: #ffffff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px;
+    opacity: 0; pointer-events: none; transition: opacity .3s ease;
+  }
+  .loader-overlay.show { opacity: 1; pointer-events: all; }
+  .loader-mark { font-size: 12px; letter-spacing: 4px; color: var(--purple); text-transform: uppercase; }
+  .spinner {
+    width: 76px; height: 76px; border-radius: 50%;
+    border: 3px solid rgba(124,58,237,0.15); border-top-color: var(--purple);
+    animation: spin 1s linear infinite;
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .loader-bar-wrap { width: 300px; display: none; }
-  .loader-bar-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
-  .loader-bar-bg { height: 4px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; }
-  .loader-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; transition: width 0.3s ease; }
-  .loader-status { font-size: 12px; color: rgba(168,85,247,0.7); letter-spacing: 2px; text-transform: uppercase; }
+  .loader-bar-wrap { width: 280px; display: none; }
+  .loader-bar-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; letter-spacing: 1px; }
+  .loader-bar-bg { height: 4px; background: var(--bg3); border-radius: 99px; overflow: hidden; }
+  .loader-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--purple), var(--purple2)); border-radius: 99px; }
 
-  /* NAV */
-  #app { display: none; }
-  nav { position: sticky; top: 0; z-index: 100; background: rgba(10,10,15,0.95); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; height: 60px; gap: 8px; }
-  .nav-logo { font-size: 1.1rem; font-weight: 800; color: var(--text); text-decoration: none; margin-right: 32px; white-space: nowrap; }
-  .nav-logo span { color: var(--accent2); }
-  .nav-links { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
-  .nav-btn { background: none; border: none; color: var(--muted); font-size: 14px; font-weight: 500; padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-  .nav-btn:hover, .nav-btn.active { background: rgba(124,58,237,0.15); color: var(--text); }
-  .btn-create { background: var(--accent); color: #fff; border: none; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-  .btn-create:hover { background: var(--accent2); }
+  /* topbar / breadcrumbs */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: none; align-items: center; gap: 14px;
+    padding: 18px 24px; background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0));
+  }
+  .topbar.show { display: flex; }
+  .back-btn {
+    background: var(--bg2); border: 1px solid var(--line); color: var(--purple);
+    width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all .15s;
+    flex-shrink: 0;
+  }
+  .back-btn:hover { background: var(--purple); border-color: var(--purple); color: #fff; }
+  .crumbs { display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 1px; flex-wrap: wrap; }
+  .crumb-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-family: inherit; font-size: inherit; letter-spacing: inherit; padding: 4px 2px; }
+  .crumb-btn:hover { color: var(--purple-deep); }
+  .crumb-sep { color: var(--locked); }
+  .crumb-current { color: var(--purple); }
 
-  /* PAGES */
-  .page { display: none; min-height: calc(100vh - 60px); }
-  .page.active { display: block; }
+  /* newspaper quicklink (visible on every screen except the newspaper itself) */
+  .np-quicklink {
+    position: fixed; top: 18px; right: 20px; z-index: 60;
+    background: var(--bg2); border: 1px solid var(--line); color: var(--purple);
+    font-size: 11px; letter-spacing: 1px; padding: 8px 14px; border-radius: 99px; cursor: pointer;
+    transition: all .15s; font-family: 'JetBrains Mono', monospace;
+  }
+  .np-quicklink:hover { background: var(--purple); color: #fff; }
 
-  /* HERO */
-  .hero { background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.25) 0%, transparent 65%); padding: 80px 40px 60px; text-align: center; }
-  .hero-badge { display: inline-block; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: var(--accent3); font-size: 12px; padding: 4px 14px; border-radius: 99px; margin-bottom: 20px; letter-spacing: 1px; text-transform: uppercase; }
-  .hero h1 { font-size: clamp(2.2rem, 6vw, 4rem); font-weight: 900; line-height: 1.1; letter-spacing: -2px; margin-bottom: 18px; }
-  .hero h1 span { color: var(--accent2); }
-  .hero p { font-size: 1.1rem; color: var(--muted); max-width: 560px; margin: 0 auto 36px; line-height: 1.7; }
-  .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-  .btn-primary { background: var(--accent); color: #fff; border: none; padding: 12px 28px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-  .btn-primary:hover { background: var(--accent2); transform: translateY(-2px); }
-  .btn-secondary { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border); padding: 12px 28px; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
-  .btn-secondary:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
+  /* screens */
+  .screen {
+    display: none; min-height: 100vh; position: relative; z-index: 2;
+    align-items: center; justify-content: center; flex-direction: column;
+    padding: 100px 24px 64px;
+  }
+  .screen.active { display: flex; }
 
-  /* STATS */
-  .stats { display: flex; gap: 1px; background: var(--border); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-  .stat { flex: 1; background: var(--bg2); padding: 24px; text-align: center; }
-  .stat-num { font-size: 1.8rem; font-weight: 800; color: var(--accent2); }
-  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  /* SERIES / TITLE */
+  #screen-series { padding-top: 24px; }
+  .brand-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 3px;
+    color: var(--muted); text-transform: uppercase; margin-bottom: 36px;
+  }
+  .ambient-target {
+    position: absolute; top: 50%; left: 50%; width: 480px; height: 480px;
+    transform: translate(-50%,-52%); pointer-events: none; z-index: 0;
+  }
+  .ambient-target .ring { position: absolute; inset: 0; border: 1px solid rgba(124,58,237,0.18); border-radius: 50%; animation: pulse-ring 4.5s ease-in-out infinite; }
+  .ambient-target .ring2 { position: absolute; inset: 60px; border: 1px solid rgba(124,58,237,0.12); border-radius: 50%; }
+  .ambient-target .tick { position: absolute; background: rgba(124,58,237,0.4); }
+  .ambient-target .tick-top { top: -10px; left: 50%; width: 1px; height: 20px; transform: translateX(-50%); }
+  .ambient-target .tick-bottom { bottom: -10px; left: 50%; width: 1px; height: 20px; transform: translateX(-50%); }
+  .ambient-target .tick-left { left: -10px; top: 50%; height: 1px; width: 20px; transform: translateY(-50%); }
+  .ambient-target .tick-right { right: -10px; top: 50%; height: 1px; width: 20px; transform: translateY(-50%); }
+  @keyframes pulse-ring { 0%,100% { opacity: .5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.04); } }
 
-  /* SECTION */
-  .section { padding: 48px 40px; max-width: 1400px; margin: 0 auto; }
-  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-  .section-title { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-  .see-all { background: none; border: 1px solid var(--border); color: var(--muted); font-size: 13px; padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
-  .see-all:hover { color: var(--text); border-color: rgba(168,85,247,0.4); }
-  .games-row { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin; scrollbar-color: rgba(168,85,247,0.3) transparent; }
-  .games-row::-webkit-scrollbar { height: 4px; }
-  .games-row::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.3); border-radius: 99px; }
+  .hero {
+    position: relative; z-index: 2; background: none; border: none; color: var(--text);
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 14px;
+    padding: 24px; transition: transform .25s ease;
+  }
+  .hero:hover { transform: scale(1.02); }
+  .hero-eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 4px;
+    color: var(--purple-deep); text-transform: uppercase;
+  }
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: clamp(3.4rem, 14vw, 8rem);
+    line-height: 0.95; letter-spacing: 2px; color: var(--text);
+  }
+  .hero-tagline { color: var(--muted); font-size: 15px; max-width: 380px; text-align: center; line-height: 1.6; }
+  .hero-cta {
+    margin-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 2px;
+    color: var(--purple); border: 1px solid rgba(124,58,237,0.4); padding: 10px 22px; border-radius: 99px;
+    background: var(--bg2); transition: all .2s;
+  }
+  .hero:hover .hero-cta { background: var(--purple); color: #fff; border-color: var(--purple); }
 
-  /* EMPTY STATE */
-  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; background: var(--card); border: 1px dashed rgba(168,85,247,0.25); border-radius: 16px; text-align: center; gap: 12px; width: 100%; }
-  .empty-state .empty-icon { font-size: 2.5rem; }
-  .empty-state p { color: var(--muted); font-size: 14px; }
-  .empty-state button { background: rgba(124,58,237,0.2); border: 1px solid rgba(168,85,247,0.3); color: var(--accent3); font-size: 13px; padding: 8px 18px; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
-  .empty-state button:hover { background: var(--accent); color: #fff; }
+  /* shared screen body */
+  .screen-body { max-width: 760px; width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center; }
+  .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 3px; color: var(--purple-deep); text-transform: uppercase; margin-bottom: 10px; }
+  .screen-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.4rem, 8vw, 4.2rem); letter-spacing: 1px; margin-bottom: 14px; }
+  .screen-desc { color: var(--muted); font-size: 14px; max-width: 460px; margin-bottom: 36px; line-height: 1.6; }
 
-  /* GAME CARD */
-  .game-card { min-width: 200px; max-width: 200px; background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; cursor: pointer; transition: all 0.2s; flex-shrink: 0; text-decoration: none; display: block; }
-  .game-card:hover { transform: translateY(-4px); border-color: rgba(168,85,247,0.4); }
-  .game-thumb-placeholder { width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
-  .game-info { padding: 10px 12px; }
-  .game-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
-  .game-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
-  .game-engine { font-size: 10px; padding: 2px 7px; border-radius: 99px; font-weight: 600; }
-  .engine-godot { background: rgba(78,196,77,0.15); color: #4ec44d; border: 1px solid rgba(78,196,77,0.3); }
-  .engine-unity { background: rgba(255,255,255,0.1); color: #ddd; border: 1px solid rgba(255,255,255,0.2); }
-  .engine-unreal { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
-  .play-btn { font-size: 10px; background: var(--accent); color: #fff; border: none; padding: 3px 8px; border-radius: 6px; cursor: pointer; }
+  /* CHAPTERS GRID */
+  .chapter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; width: 100%; margin-top: 12px; }
+  .chapter-card {
+    background: var(--bg2); border: 1px solid var(--line); border-radius: 16px; padding: 28px 20px;
+    cursor: pointer; color: var(--text); font-family: inherit; text-align: left; transition: all .2s;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .chapter-card:not(.locked):hover { border-color: var(--purple); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(124,58,237,0.12); }
+  .chapter-card.locked { cursor: default; opacity: 0.6; border-style: dashed; background: var(--bg); }
+  .chapter-num { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); letter-spacing: 2px; }
+  .chapter-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 0.5px; line-height: 1.2; }
+  .chapter-status { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px; padding: 4px 10px; border-radius: 99px; align-self: flex-start; }
+  .status-live { background: rgba(124,58,237,0.12); color: var(--purple-deep); border: 1px solid rgba(124,58,237,0.3); }
+  .status-locked { background: var(--bg2); color: var(--muted); border: 1px solid var(--line); }
 
-  /* ABOUT */
-  .about-hero { background: radial-gradient(ellipse at 30% 50%, rgba(124,58,237,0.15) 0%, transparent 60%); padding: 64px 40px; }
-  .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; max-width: 1200px; margin: 0 auto; align-items: center; }
-  .about-badge { display: inline-block; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: var(--accent3); font-size: 11px; padding: 4px 12px; border-radius: 99px; margin-bottom: 16px; }
-  .about-grid h2 { font-size: 2.4rem; font-weight: 900; letter-spacing: -1px; line-height: 1.2; margin-bottom: 16px; }
-  .about-grid h2 span { color: var(--accent2); }
-  .about-grid p { color: var(--muted); line-height: 1.8; margin-bottom: 16px; font-size: 15px; }
-  .about-visual { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .about-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
-  .about-card-icon { font-size: 2rem; margin-bottom: 10px; }
-  .about-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
-  .about-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
-  .team-section { padding: 48px 40px; max-width: 1200px; margin: 0 auto; }
-  .team-section h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 32px; text-align: center; }
-  .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-  .team-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; text-align: center; transition: all 0.2s; }
-  .team-card:hover { border-color: rgba(168,85,247,0.4); transform: translateY(-3px); }
-  .team-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 800; margin: 0 auto 12px; color: white; }
-  .team-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-  .team-role { font-size: 12px; color: var(--accent3); }
+  /* CHAPTER 1 -> platform choice */
+  .platform-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; width: 100%; }
+  .platform-card {
+    background: var(--bg2); border: 1px solid var(--line); border-radius: 16px; padding: 32px 22px;
+    cursor: pointer; color: var(--text); font-family: inherit; transition: all .2s;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .platform-card:hover { border-color: var(--purple); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(124,58,237,0.12); }
+  .platform-icon { font-size: 1.8rem; margin-bottom: 6px; }
+  .platform-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 1px; }
+  .platform-sub { font-size: 12px; color: var(--muted); text-align: center; }
 
-  /* TUTORIALS */
-  .tut-hero { padding: 48px 40px 24px; text-align: center; background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.15) 0%, transparent 60%); }
-  .tut-hero h1 { font-size: 2.4rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 10px; }
-  .tut-hero p { color: var(--muted); font-size: 15px; }
-  .tut-filters { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 24px 40px; }
-  .filter-btn { background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--muted); font-size: 13px; padding: 7px 16px; border-radius: 99px; cursor: pointer; transition: all 0.15s; }
-  .filter-btn:hover, .filter-btn.active { background: rgba(124,58,237,0.2); border-color: rgba(168,85,247,0.5); color: var(--text); }
-  .tut-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; padding: 16px 40px 48px; max-width: 1400px; margin: 0 auto; }
-  .tut-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; cursor: pointer; transition: all 0.2s; }
-  .tut-card:hover { transform: translateY(-4px); border-color: rgba(168,85,247,0.4); }
-  .tut-thumb { height: 160px; display: flex; align-items: center; justify-content: center; font-size: 3rem; position: relative; }
-  .tut-play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; opacity: 0; transition: opacity 0.2s; background: rgba(0,0,0,0.4); }
-  .tut-card:hover .tut-play { opacity: 1; }
-  .tut-body { padding: 16px; }
-  .tut-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; line-height: 1.4; }
-  .tut-card p { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
-  .tut-footer { display: flex; align-items: center; justify-content: space-between; }
-  .tut-level { font-size: 11px; padding: 3px 8px; border-radius: 99px; }
-  .level-beginner { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
-  .level-intermediate { background: rgba(245,158,11,0.15); color: var(--gold); border: 1px solid rgba(245,158,11,0.3); }
-  .level-advanced { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
-  .tut-duration { font-size: 11px; color: var(--muted); }
+  /* ROBLOX / DOWNLOAD detail */
+  .play-link {
+    display: inline-block; background: var(--purple); color: #fff; font-weight: 700; text-decoration: none;
+    padding: 14px 32px; border-radius: 12px; font-size: 15px; letter-spacing: 0.5px; transition: all .2s; margin-bottom: 14px;
+  }
+  .play-link:hover { background: var(--purple-deep); transform: translateY(-2px); }
+  .link-display {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted);
+    background: var(--bg2); border: 1px solid var(--line); padding: 10px 16px; border-radius: 8px;
+    margin-bottom: 36px; word-break: break-all; max-width: 480px;
+  }
+  .avail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; width: 100%; max-width: 560px; }
+  .avail-item {
+    background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 18px 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .avail-icon { font-size: 1.4rem; }
+  .avail-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px; color: var(--text); text-transform: uppercase; }
+  .avail-status { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; color: var(--muted); background: var(--bg); border: 1px solid var(--line); padding: 3px 9px; border-radius: 99px; }
 
-  /* PUBLISH TUTORIAL */
-  .pub-hero { padding: 56px 40px 32px; text-align: center; background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.2) 0%, transparent 60%); }
-  .pub-hero h1 { font-size: 2.4rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 10px; }
-  .pub-hero h1 span { color: var(--accent2); }
-  .pub-hero p { color: var(--muted); font-size: 15px; max-width: 560px; margin: 0 auto; }
-  .pub-steps { max-width: 860px; margin: 0 auto; padding: 32px 40px 56px; }
-  .pub-phase { margin-bottom: 48px; }
-  .pub-phase-title { font-size: 1.1rem; font-weight: 800; color: var(--accent2); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-  .pub-step { display: flex; gap: 20px; margin-bottom: 20px; }
-  .step-num { width: 36px; height: 36px; border-radius: 50%; background: rgba(124,58,237,0.2); border: 1px solid rgba(168,85,247,0.4); color: var(--accent3); font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
-  .step-content { flex: 1; }
-  .step-content h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
-  .step-content p { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 8px; }
-  .step-content a { color: var(--accent3); text-decoration: none; }
-  .step-content a:hover { text-decoration: underline; }
-  .code-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; font-family: monospace; font-size: 13px; color: #a5f3fc; margin: 8px 0; word-break: break-all; }
-  .tip-box { background: rgba(124,58,237,0.1); border: 1px solid rgba(168,85,247,0.25); border-radius: 10px; padding: 14px 16px; font-size: 13px; color: var(--accent3); margin: 8px 0; line-height: 1.6; }
-  .warn-box { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); border-radius: 10px; padding: 14px 16px; font-size: 13px; color: var(--gold); margin: 8px 0; line-height: 1.6; }
-  .success-box { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); border-radius: 10px; padding: 14px 16px; font-size: 13px; color: var(--green); margin: 8px 0; line-height: 1.6; }
-  .engine-tabs-pub { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
-  .eng-tab { background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--muted); font-size: 13px; padding: 8px 18px; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
-  .eng-tab:hover, .eng-tab.active { color: var(--text); border-color: rgba(168,85,247,0.5); background: rgba(124,58,237,0.15); }
-  .eng-content { display: none; }
-  .eng-content.active { display: block; }
+  /* NEWSPAPER PAGE */
+  .newspaper-body { max-width: 700px; text-align: left; }
+  .np-masthead { text-align: center; margin-bottom: 6px; width: 100%; }
+  .np-kicker { font-size: 11px; letter-spacing: 3px; color: var(--purple); }
+  .np-title { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(1.8rem, 6vw, 3rem); letter-spacing: 0.5px; color: var(--text); line-height: 1.1; margin-top: 10px; }
+  .np-meta { font-size: 11px; letter-spacing: 1px; color: var(--muted); margin-top: 12px; display: flex; gap: 8px; justify-content: center; align-items: center; }
+  .np-dot { color: var(--locked); }
+  .np-rule { width: 100%; height: 3px; background: var(--text); margin: 20px 0 30px; position: relative; }
+  .np-rule::after { content: ''; position: absolute; left: 0; right: 0; top: 7px; height: 1px; background: var(--text); }
+  .np-articles { display: flex; flex-direction: column; gap: 30px; width: 100%; }
+  .np-article h2 { font-family: 'Playfair Display', serif; font-size: 1.7rem; margin-bottom: 8px; line-height: 1.25; }
+  .np-article h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; margin-bottom: 8px; }
+  .np-byline { font-size: 11px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+  .np-article p:not(.np-byline) { font-size: 14.5px; line-height: 1.75; color: var(--text); }
 
-  /* GAMES PAGE */
-  .apps-topbar { display: flex; align-items: center; gap: 16px; padding: 20px 40px; border-bottom: 1px solid var(--border); background: var(--bg2); flex-wrap: wrap; }
-  .search-wrap { flex: 1; min-width: 200px; position: relative; }
-  .search-wrap input { width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 9px 16px 9px 40px; border-radius: 99px; font-size: 14px; outline: none; transition: border-color 0.15s; }
-  .search-wrap input:focus { border-color: rgba(168,85,247,0.5); }
-  .search-wrap input::placeholder { color: var(--muted); }
-  .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); }
-  .engine-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-  .engine-tab { background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--muted); font-size: 13px; padding: 7px 14px; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
-  .engine-tab:hover, .engine-tab.active { color: var(--text); border-color: rgba(168,85,247,0.5); background: rgba(124,58,237,0.15); }
-  .apps-sections { padding: 32px 40px; max-width: 1400px; margin: 0 auto; }
-  .section-divider { height: 1px; background: var(--border); margin: 32px 0; }
+  footer {
+    position: fixed; bottom: 14px; left: 0; right: 0; text-align: center; z-index: 5;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 2px; color: rgba(117,110,138,0.6);
+    pointer-events: none; text-transform: uppercase;
+  }
 
-  /* RP APPS */
-  .rp-hero { padding: 64px 40px 48px; text-align: center; background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.2) 0%, transparent 60%); }
-  .rp-hero h1 { font-size: 2.6rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 10px; }
-  .rp-hero h1 span { color: var(--accent2); }
-  .rp-hero p { color: var(--muted); font-size: 15px; max-width: 500px; margin: 0 auto; }
-  .rp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 32px 40px 48px; max-width: 1400px; margin: 0 auto; }
-  .rp-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px; cursor: pointer; transition: all 0.2s; }
-  .rp-card:hover { transform: translateY(-4px); border-color: rgba(168,85,247,0.4); }
-  .rp-icon { font-size: 2.4rem; margin-bottom: 14px; }
-  .rp-card h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 6px; }
-  .rp-card p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; }
-  .rp-badge { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 99px; font-weight: 600; }
-  .badge-available { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
-  .badge-beta { background: rgba(245,158,11,0.15); color: var(--gold); border: 1px solid rgba(245,158,11,0.3); }
-  .badge-soon { background: rgba(107,114,128,0.15); color: var(--muted); border: 1px solid rgba(107,114,128,0.3); }
-  .rp-card-btn { display: inline-block; margin-top: 14px; background: rgba(124,58,237,0.2); border: 1px solid rgba(168,85,247,0.3); color: var(--accent3); font-size: 13px; padding: 7px 16px; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
-  .rp-card-btn:hover { background: var(--accent); color: #fff; }
-
-  /* SUBMIT MODAL */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .modal-overlay.hidden { display: none; }
-  .modal { background: var(--bg2); border: 1px solid rgba(168,85,247,0.3); border-radius: 20px; padding: 32px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
-  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-  .modal-title { font-size: 1.2rem; font-weight: 800; }
-  .modal-close { background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; }
-  .modal-close:hover { color: var(--text); }
-  .form-group { margin-bottom: 18px; }
-  .form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
-  .form-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 10px; font-size: 14px; outline: none; transition: border-color 0.15s; }
-  .form-input:focus { border-color: rgba(168,85,247,0.5); }
-  .form-select { width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 10px; font-size: 14px; outline: none; }
-  .form-textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 10px; font-size: 14px; outline: none; resize: vertical; min-height: 80px; font-family: inherit; }
-  .modal-footer { display: flex; gap: 10px; margin-top: 24px; }
-  .btn-cancel { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--muted); padding: 11px; border-radius: 10px; font-size: 14px; cursor: pointer; }
-  .btn-submit { flex: 2; background: var(--accent); border: none; color: #fff; padding: 11px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
-  .btn-submit:hover { background: var(--accent2); }
-
-  footer { border-top: 1px solid var(--border); padding: 32px 40px; background: var(--bg2); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-  .footer-logo { font-size: 1.1rem; font-weight: 800; }
-  .footer-logo span { color: var(--accent2); }
-  .footer-copy { font-size: 12px; color: var(--muted); }
-
-  @media(max-width:768px) {
-    .about-grid { grid-template-columns: 1fr; }
-    nav { padding: 0 12px; }
-    .hero, .section, .apps-sections, .rp-grid, .tut-grid, .pub-steps { padding-left: 16px; padding-right: 16px; }
-    .stats { flex-wrap: wrap; }
-    .apps-topbar { padding: 12px 16px; }
+  @media (prefers-reduced-motion: reduce) {
+    .ring, .hero, .spinner { animation: none !important; transition: none !important; }
+  }
+  @media (max-width: 600px) {
+    .topbar { padding: 14px 16px; }
+    .screen { padding: 84px 16px 56px; }
+    .np-quicklink { font-size: 10px; padding: 7px 10px; top: 14px; right: 14px; }
   }
 </style>
 </head>
 <body>
 
-<!-- LOADER -->
-<div id="loader">
-  <div class="loader-logo">RAKING <span>PRODUCTIONS</span></div>
+<!-- ===== LOADER OVERLAY: shown for every page enter/exit ===== -->
+<div class="loader-overlay show" id="loaderOverlay">
+  <div class="loader-mark mono" id="loaderMark">ENTERING</div>
   <div class="spinner" id="spinner"></div>
-  <div class="loader-bar-wrap" id="bar-wrap">
-    <div class="loader-bar-label">
-      <span class="loader-status" id="loader-status">INITIALIZING</span>
-      <span id="loader-pct">0%</span>
+  <div class="loader-bar-wrap" id="barWrap">
+    <div class="loader-bar-label mono">
+      <span id="loaderStatus">INITIALIZING</span><span id="loaderPct">0%</span>
     </div>
-    <div class="loader-bar-bg"><div class="loader-bar-fill" id="loader-bar"></div></div>
+    <div class="loader-bar-bg"><div class="loader-bar-fill" id="loaderFill"></div></div>
   </div>
 </div>
 
-<div id="app">
-  <nav>
-    <a class="nav-logo" href="#" onclick="showPage('home')">RAKING <span>PRODUCTIONS</span></a>
-    <div class="nav-links">
-      <button class="nav-btn active" onclick="showPage('home',this)">Home</button>
-      <button class="nav-btn" onclick="showPage('about',this)">About Us</button>
-      <button class="nav-btn" onclick="showPage('tutorials',this)">Tutorials</button>
-      <button class="nav-btn" onclick="showPage('games',this)">Games</button>
-      <button class="nav-btn" onclick="showPage('publish',this)">📤 Publish Your Game</button>
-      <button class="nav-btn" onclick="showPage('rpapps',this)">RP Apps</button>
-    </div>
-    <button class="btn-create" onclick="openSubmit()">+ Submit Game</button>
-  </nav>
+<button class="np-quicklink mono" id="newspaperLink">📰 WEEKLY NEWSPAPER</button>
 
-  <!-- HOME -->
-  <div class="page active" id="page-home">
-    <div class="hero">
-      <div class="hero-badge">Welcome to Raking Productions</div>
-      <h1>Build. Play. Share.<br><span>Make It Real.</span></h1>
-      <p>The home for Godot, Unity & Unreal Engine indie games. Upload your game to itch.io and feature it here for the world to play.</p>
-      <div class="hero-btns">
-        <button class="btn-primary" onclick="showPage('games')">Browse Games</button>
-        <button class="btn-secondary" onclick="showPage('publish')">How To Publish</button>
-      </div>
-    </div>
-    <div class="stats">
-      <div class="stat"><div class="stat-num" id="stat-games">0</div><div class="stat-label">Games Listed</div></div>
-      <div class="stat"><div class="stat-num">Free</div><div class="stat-label">To Submit</div></div>
-      <div class="stat"><div class="stat-num">3</div><div class="stat-label">Engines Supported</div></div>
-      <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Games To Discover</div></div>
-    </div>
-    <div style="padding:40px 40px 0;max-width:1400px;margin:0 auto;">
-      <div style="background:var(--card);border:1px solid rgba(168,85,247,0.25);border-radius:16px;padding:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
-        <div>
-          <div style="font-size:11px;color:var(--accent3);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;">WANT YOUR GAME HERE?</div>
-          <div style="font-size:1.1rem;font-weight:800;margin-bottom:4px;">Upload to itch.io → Submit link here → Done!</div>
-          <div style="font-size:13px;color:var(--muted);">It's free and takes less than 10 minutes. Follow our step-by-step guide.</div>
-        </div>
-        <button class="btn-primary" onclick="showPage('publish')">Read the Guide →</button>
-      </div>
-    </div>
-    <div class="section">
-      <div class="section-header"><div class="section-title">🎮 All Games</div><button class="see-all" onclick="showPage('games')">See all</button></div>
-      <div id="home-all-row" class="games-row"></div>
-    </div>
-    <footer><div class="footer-logo">RAKING <span>PRODUCTIONS</span></div><div class="footer-copy">© 2025 Raking Productions. All rights reserved.</div></footer>
+<div class="topbar" id="topbar">
+  <button class="back-btn" id="backBtn" aria-label="Go back">‹</button>
+  <div class="crumbs" id="crumbs"></div>
+</div>
+
+<!-- SERIES -->
+<div class="screen active" data-screen="series" id="screen-series">
+  <div class="ambient-target">
+    <div class="ring"></div><div class="ring2"></div>
+    <div class="tick tick-top"></div><div class="tick tick-bottom"></div>
+    <div class="tick tick-left"></div><div class="tick tick-right"></div>
   </div>
+  <div class="brand-tag">Raking Productions Presents</div>
+  <button class="hero" id="heroBtn" aria-label="Enter the Power Hunter series">
+    <span class="hero-eyebrow">The Series</span>
+    <h1 class="hero-title">POWER<br>HUNTER</h1>
+    <span class="hero-tagline">Hunt the power. Live the story.</span>
+    <span class="hero-cta">TAP TO ENTER ›</span>
+  </button>
+</div>
 
-  <!-- ABOUT -->
-  <div class="page" id="page-about">
-    <div class="about-hero">
-      <div class="about-grid">
-        <div>
-          <div class="about-badge">ABOUT US</div>
-          <h2>We Are <span>Raking Productions</span></h2>
-          <p>Raking Productions is an independent game development studio and platform founded by RAKING07JANUARY. We believe great games can come from anyone, anywhere.</p>
-          <p>Our mission is to give indie developers — especially those building with Godot, Unity, and Unreal — a place to share their work and grow an audience.</p>
-          <p>We are also developing our own games and tools under the RP brand, including RP Game Studio — a browser-based creation tool inspired by Roblox.</p>
-          <button class="btn-primary" style="margin-top:8px" onclick="showPage('rpapps')">Explore RP Apps</button>
-        </div>
-        <div class="about-visual">
-          <div class="about-card"><div class="about-card-icon">🎮</div><h3>Game Platform</h3><p>Play Godot, Unity & Unreal games linked from itch.io.</p></div>
-          <div class="about-card"><div class="about-card-icon">📚</div><h3>Learn & Grow</h3><p>Free tutorials for all skill levels and all major engines.</p></div>
-          <div class="about-card"><div class="about-card-icon">🛠️</div><h3>Our Own Tools</h3><p>RP Game Studio and more — tools built by devs, for devs.</p></div>
-          <div class="about-card"><div class="about-card-icon">🌐</div><h3>Community</h3><p>Join developers sharing their work on Raking Productions.</p></div>
-        </div>
+<!-- CHAPTERS -->
+<div class="screen" data-screen="chapters" id="screen-chapters">
+  <div class="screen-body">
+    <span class="eyebrow">Power Hunter</span>
+    <h2 class="screen-title">CHAPTERS</h2>
+    <div class="chapter-grid">
+      <button class="chapter-card" id="chapter1Btn">
+        <span class="chapter-num">01</span>
+        <span class="chapter-name">Power Hunter<br>Chapter 1</span>
+        <span class="chapter-status status-live">IN PROGRESS</span>
+      </button>
+      <div class="chapter-card locked">
+        <span class="chapter-num">02</span>
+        <span class="chapter-name">More Chapters</span>
+        <span class="chapter-status status-locked">COMING SOON</span>
       </div>
     </div>
-    <div class="team-section">
-      <h2>Meet The Team</h2>
-      <div class="team-grid">
-        <div class="team-card"><div class="team-avatar">R</div><div class="team-name">RAKING07JANUARY</div><div class="team-role">Founder & Lead Developer</div></div>
-        <div class="team-card"><div class="team-avatar">D</div><div class="team-name">Dev Team Alpha</div><div class="team-role">Game Systems & Scripting</div></div>
-        <div class="team-card"><div class="team-avatar">A</div><div class="team-name">Art Studio</div><div class="team-role">3D Modeling & Visual FX</div></div>
-        <div class="team-card"><div class="team-avatar">S</div><div class="team-name">Sound Lab</div><div class="team-role">Music & Sound Design</div></div>
-      </div>
-    </div>
-    <footer><div class="footer-logo">RAKING <span>PRODUCTIONS</span></div><div class="footer-copy">© 2025 Raking Productions.</div></footer>
-  </div>
-
-  <!-- TUTORIALS -->
-  <div class="page" id="page-tutorials">
-    <div class="tut-hero"><h1>Tutorials</h1><p>Learn game development with free guides for Godot, Unity, and Unreal Engine.</p></div>
-    <div class="tut-filters">
-      <button class="filter-btn active" onclick="filterTuts('all',this)">All</button>
-      <button class="filter-btn" onclick="filterTuts('godot',this)">Godot</button>
-      <button class="filter-btn" onclick="filterTuts('unity',this)">Unity</button>
-      <button class="filter-btn" onclick="filterTuts('unreal',this)">Unreal</button>
-      <button class="filter-btn" onclick="filterTuts('beginner',this)">Beginner</button>
-      <button class="filter-btn" onclick="filterTuts('intermediate',this)">Intermediate</button>
-      <button class="filter-btn" onclick="filterTuts('advanced',this)">Advanced</button>
-    </div>
-    <div class="tut-grid" id="tut-grid"></div>
-    <footer><div class="footer-logo">RAKING <span>PRODUCTIONS</span></div><div class="footer-copy">© 2025 Raking Productions.</div></footer>
-  </div>
-
-  <!-- GAMES -->
-  <div class="page" id="page-games">
-    <div class="apps-topbar">
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input type="text" placeholder="Search games..." id="game-search" oninput="searchGames(this.value)">
-      </div>
-      <div class="engine-tabs">
-        <button class="engine-tab active" onclick="filterEngine('all',this)">All</button>
-        <button class="engine-tab" onclick="filterEngine('godot',this)">Godot</button>
-        <button class="engine-tab" onclick="filterEngine('unity',this)">Unity</button>
-        <button class="engine-tab" onclick="filterEngine('unreal',this)">Unreal</button>
-      </div>
-    </div>
-    <div class="apps-sections">
-      <div id="gs-godot"><div class="section-header"><div class="section-title">🕹️ Godot Games</div></div><div class="games-row" id="gr-godot"></div></div>
-      <div class="section-divider"></div>
-      <div id="gs-unity"><div class="section-header"><div class="section-title">⚡ Unity Games</div></div><div class="games-row" id="gr-unity"></div></div>
-      <div class="section-divider"></div>
-      <div id="gs-unreal"><div class="section-header"><div class="section-title">🔺 Unreal Engine Games</div></div><div class="games-row" id="gr-unreal"></div></div>
-      <div id="search-results" style="display:none">
-        <div class="section-header"><div class="section-title" id="search-label">Results</div></div>
-        <div style="display:flex;flex-wrap:wrap;gap:16px;" id="search-grid"></div>
-      </div>
-    </div>
-    <footer><div class="footer-logo">RAKING <span>PRODUCTIONS</span></div><div class="footer-copy">© 2025 Raking Productions.</div></footer>
-  </div>
-
-  <!-- PUBLISH TUTORIAL -->
-  <div class="page" id="page-publish">
-    <div class="pub-hero">
-      <h1>📤 Publish Your Game on <span>Raking Productions</span></h1>
-      <p>Follow this step-by-step guide to export your game, upload it to itch.io, and get it listed on our platform — completely free.</p>
-    </div>
-    <div class="pub-steps">
-
-      <!-- ENGINE SELECTOR -->
-      <div style="margin-bottom:32px;">
-        <p style="font-size:14px;color:var(--muted);margin-bottom:12px;">Select your game engine to see specific export instructions:</p>
-        <div class="engine-tabs-pub">
-          <button class="eng-tab active" onclick="switchEngine('godot',this)">🕹️ Godot 4</button>
-          <button class="eng-tab" onclick="switchEngine('unity',this)">⚡ Unity</button>
-          <button class="eng-tab" onclick="switchEngine('unreal',this)">🔺 Unreal Engine</button>
-        </div>
-      </div>
-
-      <!-- GODOT -->
-      <div class="eng-content active" id="eng-godot">
-        <div class="pub-phase">
-          <div class="pub-phase-title">🛠️ Phase 1 — Export Your Godot Game for Web</div>
-          <div class="pub-step"><div class="step-num">1</div><div class="step-content"><h3>Install the Web Export Template</h3><p>In Godot 4, go to <strong>Editor → Export → Manage Export Templates</strong>. Click <strong>Download and Install</strong> for your current Godot version. Wait for it to finish.</p><div class="tip-box">💡 This only needs to be done once per Godot installation.</div></div></div>
-          <div class="pub-step"><div class="step-num">2</div><div class="step-content"><h3>Add a Web Export Preset</h3><p>Go to <strong>Project → Export</strong>. Click <strong>Add...</strong> and select <strong>Web</strong> from the list.</p></div></div>
-          <div class="pub-step"><div class="step-num">3</div><div class="step-content"><h3>Configure the Export</h3><p>In the Web preset settings, make sure <strong>"Export Type"</strong> is set to <strong>HTML5</strong>. You can leave most settings as default for now.</p><div class="warn-box">⚠️ Make sure your main scene is set under Project → Project Settings → Application → Run → Main Scene</div></div></div>
-          <div class="pub-step"><div class="step-num">4</div><div class="step-content"><h3>Export the Files</h3><p>Click <strong>Export Project</strong>. Create a new folder called <code>my-game-web</code> and save the export there. Godot will generate these files:</p><div class="code-block">index.html<br>index.js<br>index.wasm<br>index.pck<br>index.png (icon)</div><div class="success-box">✅ Your game is now exported! Keep this folder — you'll upload all these files to itch.io.</div></div></div>
-        </div>
-      </div>
-
-      <!-- UNITY -->
-      <div class="eng-content" id="eng-unity">
-        <div class="pub-phase">
-          <div class="pub-phase-title">🛠️ Phase 1 — Export Your Unity Game for Web</div>
-          <div class="pub-step"><div class="step-num">1</div><div class="step-content"><h3>Install WebGL Build Support</h3><p>Open <strong>Unity Hub → Installs</strong>. Click the three dots on your Unity version → <strong>Add Modules</strong>. Check <strong>WebGL Build Support</strong> and install it.</p></div></div>
-          <div class="pub-step"><div class="step-num">2</div><div class="step-content"><h3>Switch Platform to WebGL</h3><p>In Unity go to <strong>File → Build Settings</strong>. Select <strong>WebGL</strong> from the list. Click <strong>Switch Platform</strong> and wait for Unity to reimport assets.</p><div class="tip-box">💡 This can take a few minutes the first time.</div></div></div>
-          <div class="pub-step"><div class="step-num">3</div><div class="step-content"><h3>Build the Game</h3><p>In Build Settings, click <strong>Build</strong>. Choose a folder like <code>WebBuild</code>. Unity creates a folder with HTML and WebGL files inside.</p><div class="warn-box">⚠️ In Player Settings, set <strong>Compression Format</strong> to <strong>Disabled</strong> — itch.io needs this to work properly.</div></div></div>
-          <div class="pub-step"><div class="step-num">4</div><div class="step-content"><h3>Zip the Build Folder</h3><p>Go to your <code>WebBuild</code> folder. Select all files inside it, right-click and <strong>Compress to ZIP</strong>. Name it <code>my-unity-game.zip</code>.</p><div class="success-box">✅ Your ZIP file is ready to upload to itch.io!</div></div></div>
-        </div>
-      </div>
-
-      <!-- UNREAL -->
-      <div class="eng-content" id="eng-unreal">
-        <div class="pub-phase">
-          <div class="pub-phase-title">🛠️ Phase 1 — Export Your Unreal Game for Web</div>
-          <div class="pub-step"><div class="step-num">1</div><div class="step-content"><h3>Important Note About Unreal + Web</h3><p>Unreal Engine 5 does not officially support HTML5/WebGL export. The best option for Unreal games on itch.io is to export for <strong>Windows</strong> as a downloadable game.</p><div class="warn-box">⚠️ Players will need to download and run your game — it won't play in the browser. This is normal for Unreal games on itch.io.</div></div></div>
-          <div class="pub-step"><div class="step-num">2</div><div class="step-content"><h3>Package for Windows</h3><p>Go to <strong>Platforms → Windows → Package Project</strong>. Choose an output folder. Unreal will build your game into a <code>.exe</code> with supporting files.</p></div></div>
-          <div class="pub-step"><div class="step-num">3</div><div class="step-content"><h3>Zip the Package</h3><p>Select the entire packaged folder, right-click → <strong>Compress to ZIP</strong>. Name it <code>my-unreal-game.zip</code>.</p><div class="success-box">✅ Your ZIP is ready to upload to itch.io as a downloadable game!</div></div></div>
-        </div>
-      </div>
-
-      <!-- PHASE 2 — ITCH.IO (same for all engines) -->
-      <div class="pub-phase">
-        <div class="pub-phase-title">🌐 Phase 2 — Upload to itch.io</div>
-        <div class="pub-step"><div class="step-num">1</div><div class="step-content"><h3>Create a Free itch.io Account</h3><p>Go to <a href="https://itch.io" target="_blank">itch.io</a> and click <strong>Register</strong>. It's completely free — no credit card needed.</p></div></div>
-        <div class="pub-step"><div class="step-num">2</div><div class="step-content"><h3>Create a New Project</h3><p>Click your profile icon → <strong>Dashboard → Create new project</strong>.</p></div></div>
-        <div class="pub-step"><div class="step-num">3</div><div class="step-content"><h3>Fill In Your Game Details</h3><p>Fill in the <strong>Title</strong>, <strong>Short description</strong>, and pick a <strong>Cover image</strong> for your game. Under <strong>Kind of project</strong> select <strong>HTML</strong> (for Godot/Unity web) or <strong>Downloadable</strong> (for Unreal).</p></div></div>
-        <div class="pub-step"><div class="step-num">4</div><div class="step-content"><h3>Upload Your Game Files</h3><p>Scroll to <strong>Uploads</strong>. Click <strong>Upload files</strong> and upload your ZIP file or individual HTML files.</p><div class="tip-box">💡 For Godot web exports, upload all the exported files (html, js, wasm, pck). For Unity/Unreal, upload the ZIP.</div></div></div>
-        <div class="pub-step"><div class="step-num">5</div><div class="step-content"><h3>Enable the Embed (Godot & Unity only)</h3><p>After uploading, check the box that says <strong>"This file will be played in the browser"</strong>. Set the viewport size to match your game (e.g. 1280x720).</p></div></div>
-        <div class="pub-step"><div class="step-num">6</div><div class="step-content"><h3>Set Visibility to Public</h3><p>Under <strong>Visibility & access</strong>, select <strong>Public</strong>. Then scroll down and click <strong>Save & view page</strong>.</p><div class="success-box">✅ Your game is now live on itch.io! Copy your game page URL — you'll need it for the next step.</div><div class="code-block">https://yourusername.itch.io/your-game-name</div></div></div>
-      </div>
-
-      <!-- PHASE 3 — SUBMIT -->
-      <div class="pub-phase">
-        <div class="pub-phase-title">🚀 Phase 3 — Submit to Raking Productions</div>
-        <div class="pub-step"><div class="step-num">1</div><div class="step-content"><h3>Click "Submit Game" on This Site</h3><p>Click the <strong>+ Submit Game</strong> button in the top navigation bar above.</p></div></div>
-        <div class="pub-step"><div class="step-num">2</div><div class="step-content"><h3>Fill In Your Game Info</h3><p>Enter your game name, select your engine, paste your itch.io game URL, and add a short description. Pick an emoji icon for your game thumbnail.</p></div></div>
-        <div class="pub-step"><div class="step-num">3</div><div class="step-content"><h3>Submit!</h3><p>Click <strong>Submit Game</strong>. Your game will immediately appear in the Games section and players can click it to go directly to your itch.io page to play!</p><div class="success-box">🎉 That's it! Your game is now listed on Raking Productions and playable via itch.io!</div></div></div>
-      </div>
-
-      <div style="background:var(--card);border:1px solid rgba(168,85,247,0.25);border-radius:16px;padding:28px;text-align:center;">
-        <div style="font-size:2rem;margin-bottom:12px;">🎮</div>
-        <div style="font-size:1.1rem;font-weight:800;margin-bottom:8px;">Ready to publish your game?</div>
-        <div style="font-size:14px;color:var(--muted);margin-bottom:20px;">Follow the steps above and then submit your itch.io link below.</div>
-        <button class="btn-primary" onclick="openSubmit()">+ Submit Your Game Now</button>
-      </div>
-    </div>
-    <footer><div class="footer-logo">RAKING <span>PRODUCTIONS</span></div><div class="footer-copy">© 2025 Raking Productions.</div></footer>
-  </div>
-
-  <!-- RP APPS -->
-  <div class="page" id="page-rpapps">
-    <div class="rp-hero"><h1>RP <span>Apps</span></h1><p>Powerful tools and experiences built in-house by Raking Productions.</p></div>
-    <div class="rp-grid">
-      <div class="rp-card"><div class="rp-icon">🛠️</div><h3>RP Game Studio</h3><p>A Roblox-style browser-based game creation tool. Build worlds and share games — all in Godot 4.</p><span class="rp-badge badge-beta">BETA</span><div><button class="rp-card-btn" onclick="alert('RP Game Studio coming soon!')">Open Studio</button></div></div>
-      <div class="rp-card"><div class="rp-icon">🎮</div><h3>RP Games</h3><p>Exclusive games made by the Raking Productions team. Play directly in your browser.</p><span class="rp-badge badge-available">AVAILABLE</span><div><button class="rp-card-btn" onclick="showPage('games')">Play Now</button></div></div>
-      <div class="rp-card"><div class="rp-icon">🎵</div><h3>RP Music</h3><p>Original soundtracks and game music by Raking Productions. Free for use in your games.</p><span class="rp-badge badge-beta">BETA</span><div><button class="rp-card-btn" onclick="alert('RP Music launching soon!')">Listen</button></div></div>
-      <div class="rp-card"><div class="rp-icon">📦</div><h3>RP Asset Store</h3><p>Free and premium 3D models, textures, and scripts for Godot, Unity, and Unreal.</p><span class="rp-badge badge-soon">COMING SOON</span><div><button class="rp-card-btn" onclick="alert('Asset Store in development!')">Browse Assets</button></div></div>
-      <div class="rp-card"><div class="rp-icon">📱</div><h3>RP Mobile</h3><p>Play Raking Productions games on your phone. iOS and Android app coming soon.</p><span class="rp-badge badge-soon">COMING SOON</span><div><button class="rp-card-btn" onclick="alert('Mobile app in development!')">Get App</button></div></div>
-      <div class="rp-card"><div class="rp-icon">🌐</div><h3>RP Community</h3><p>Forums, devlogs, game jams, and team-finding boards for all RP creators.</p><span class="rp-badge badge-soon">COMING SOON</span><div><button class="rp-card-btn" onclick="alert('Community hub launching soon!')">Join Us</button></div></div>
-    </div>
-    <footer><div class="footer-logo">RAKING <span>PRODUCTIONS</span></div><div class="footer-copy">© 2025 Raking Productions.</div></footer>
   </div>
 </div>
 
-<!-- SUBMIT MODAL -->
-<div class="modal-overlay hidden" id="submitModal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">🎮 Submit Your Game</div>
-      <button class="modal-close" onclick="closeSubmit()">✕</button>
-    </div>
-    <div class="form-group"><label>Game Name *</label><input type="text" class="form-input" id="f-name" placeholder="e.g. Shadow Quest 3D"></div>
-    <div class="form-group"><label>Engine *</label>
-      <select class="form-select" id="f-engine">
-        <option value="">Select engine...</option>
-        <option value="godot">Godot</option>
-        <option value="unity">Unity</option>
-        <option value="unreal">Unreal Engine</option>
-      </select>
-    </div>
-    <div class="form-group"><label>itch.io Game URL *</label><input type="text" class="form-input" id="f-url" placeholder="https://yourname.itch.io/your-game"></div>
-    <div class="form-group"><label>Short Description</label><textarea class="form-textarea" id="f-desc" placeholder="Describe your game in 1-2 sentences..."></textarea></div>
-    <div class="form-group"><label>Game Emoji Icon</label><input type="text" class="form-input" id="f-emoji" placeholder="🎮 (paste any emoji)" maxlength="4"></div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeSubmit()">Cancel</button>
-      <button class="btn-submit" onclick="submitGame()">Submit Game 🚀</button>
+<!-- CHAPTER 1 -->
+<div class="screen" data-screen="chapter1" id="screen-chapter1">
+  <div class="screen-body">
+    <span class="eyebrow">Chapter 1</span>
+    <h2 class="screen-title">AT THE START</h2>
+    <p class="screen-desc">Choose how you want to play.</p>
+    <div class="platform-grid">
+      <button class="platform-card" id="robloxBtn">
+        <span class="platform-icon">🎮</span>
+        <span class="platform-name">ROBLOX</span>
+        <span class="platform-sub">Play now in the Roblox app</span>
+      </button>
+      <button class="platform-card" id="downloadBtn">
+        <span class="platform-icon">⬇</span>
+        <span class="platform-name">DOWNLOADABLE FILE</span>
+        <span class="platform-sub">Standalone build</span>
+      </button>
     </div>
   </div>
 </div>
+
+<!-- ROBLOX -->
+<div class="screen" data-screen="roblox" id="screen-roblox">
+  <div class="screen-body">
+    <span class="eyebrow">Chapter 1 · At The Start</span>
+    <h2 class="screen-title">PLAY ON ROBLOX</h2>
+    <a class="play-link" href="https://www.roblox.com/games/119246489492654/POWER-HUNTER" target="_blank" rel="noopener">PLAY NOW ON ROBLOX →</a>
+    <div class="link-display">https://www.roblox.com/games/119246489492654/POWER-HUNTER</div>
+    <div class="avail-grid">
+      <div class="avail-item"><span class="avail-icon">🖥️</span><span class="avail-label">PC</span><span class="avail-status">COMING SOON</span></div>
+      <div class="avail-item"><span class="avail-icon">📱</span><span class="avail-label">Mobile</span><span class="avail-status">COMING SOON</span></div>
+      <div class="avail-item"><span class="avail-icon">🕹️</span><span class="avail-label">Console</span><span class="avail-status">COMING SOON</span></div>
+      <div class="avail-item"><span class="avail-icon">🥽</span><span class="avail-label">VR</span><span class="avail-status">COMING SOON</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- DOWNLOAD -->
+<div class="screen" data-screen="download" id="screen-download">
+  <div class="screen-body">
+    <span class="eyebrow">Chapter 1 · At The Start</span>
+    <h2 class="screen-title">DOWNLOAD</h2>
+    <p class="screen-desc">A standalone download isn't ready yet. Play on Roblox in the meantime.</p>
+    <div class="avail-grid">
+      <div class="avail-item"><span class="avail-icon">🖥️</span><span class="avail-label">PC</span><span class="avail-status">COMING SOON</span></div>
+      <div class="avail-item"><span class="avail-icon">📱</span><span class="avail-label">Mobile</span><span class="avail-status">COMING SOON</span></div>
+      <div class="avail-item"><span class="avail-icon">🕹️</span><span class="avail-label">Console</span><span class="avail-status">COMING SOON</span></div>
+      <div class="avail-item"><span class="avail-icon">🥽</span><span class="avail-label">VR</span><span class="avail-status">COMING SOON</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- WEEKLY NEWSPAPER -->
+<div class="screen" data-screen="newspaper" id="screen-newspaper">
+  <div class="screen-body newspaper-body">
+    <div class="np-masthead">
+      <div class="np-kicker mono">WEEKLY DEVLOG</div>
+      <h1 class="np-title">THE POWER HUNTER HERALD</h1>
+      <div class="np-meta mono">
+        <!-- ✏️ EDIT EACH WEEK: change the issue number and date -->
+        <span>ISSUE №01</span><span class="np-dot">•</span><span>JUNE 23, 2026</span>
+      </div>
+    </div>
+    <div class="np-rule"></div>
+
+    <!-- ============================================================ -->
+    <!-- ✏️ EDIT THIS SECTION EVERY WEEK FOR THE NEW ISSUE              -->
+    <!-- Each story is one <article class="np-article"> block.         -->
+    <!-- Copy/paste an article block below to add more stories.        -->
+    <!-- The first/biggest story can use class="np-article np-lead".   -->
+    <!-- ============================================================ -->
+    <div class="np-articles">
+
+      <article class="np-article np-lead">
+        <h2>CHAPTER 1 DEVELOPMENT BEGINS</h2>
+        <p class="np-byline mono">By Raking Productions</p>
+        <p>Work on Chapter 1: At The Start is officially underway. This week the team focused on early
+        groundwork — more details coming as the story takes shape. Stay tuned for next week's issue.</p>
+      </article>
+
+      <article class="np-article">
+        <h3>WHAT'S NEXT</h3>
+        <p>Check back next week for another update. New issues post every week right here.</p>
+      </article>
+
+    </div>
+    <!-- ============== END EDIT SECTION ============== -->
+
+  </div>
+</div>
+
+<footer>© 2026 Raking Productions</footer>
 
 <script>
-// ── GAME DATA (starts empty) ──
-let GAMES = JSON.parse(localStorage.getItem('rp_games') || '[]');
+  /* ===== LOADING TIMES (milliseconds) — change these numbers if you want shorter/longer loaders ===== */
+  const ENTER_SPIN_MS = 30000;   // 30 sec circular spinner when ENTERING a page
+  const ENTER_BAR_MS  = 120000;  // 120 sec progress bar when ENTERING a page
+  const EXIT_SPIN_MS  = 10000;   // 10 sec circular spinner when LEAVING a page
+  const EXIT_BAR_MS   = 100000;  // 100 sec progress bar when LEAVING a page
+  const STATUSES = ['INITIALIZING', 'TRACKING SIGNAL', 'LOADING ASSETS', 'SYNCING DATA', 'CALIBRATING', 'FINALIZING'];
 
-const TUTORIALS = [
-  {title:'Getting Started with Godot 4',desc:'Learn the Godot interface, scene system, and your first 2D game.',engine:'godot',level:'beginner',mins:30,emoji:'🕹️'},
-  {title:'GDScript Basics',desc:'Variables, functions, signals and loops explained simply.',engine:'godot',level:'beginner',mins:25,emoji:'📜'},
-  {title:'3D Character Controller in Godot',desc:'Build a smooth 3D character with jump, run and camera.',engine:'godot',level:'intermediate',mins:55,emoji:'🧍'},
-  {title:'Godot Shaders Crash Course',desc:'Write custom shaders for cool visual effects in Godot 4.',engine:'godot',level:'advanced',mins:90,emoji:'✨'},
-  {title:'Unity Basics for Beginners',desc:'First steps in Unity: scenes, GameObjects, and components.',engine:'unity',level:'beginner',mins:35,emoji:'⚡'},
-  {title:'C# Scripting in Unity',desc:'Learn C# from scratch to power your Unity games.',engine:'unity',level:'beginner',mins:45,emoji:'💻'},
-  {title:'Unity Physics & Rigidbody',desc:'Master collision, forces, and joints in Unity.',engine:'unity',level:'intermediate',mins:60,emoji:'🌀'},
-  {title:'Unreal Engine 5 First Steps',desc:'Navigate UE5, Lumen lighting, and Nanite meshes.',engine:'unreal',level:'beginner',mins:40,emoji:'🔺'},
-  {title:'Blueprints Visual Scripting',desc:"Create full game logic with Unreal's Blueprint system.",engine:'unreal',level:'intermediate',mins:70,emoji:'🔵'},
-  {title:'Unreal Material Editor',desc:'Build stunning PBR materials for your Unreal games.',engine:'unreal',level:'advanced',mins:85,emoji:'🎨'},
-  {title:'Game Design Fundamentals',desc:'Core principles of game design that apply to any engine.',engine:'all',level:'beginner',mins:20,emoji:'📐'},
-  {title:'How to Export & Publish Your Game',desc:'Full walkthrough: export from Godot/Unity/Unreal, upload to itch.io, and list on RP.',engine:'all',level:'beginner',mins:15,emoji:'📤'},
-];
+  const PARENT = { series: null, chapters: 'series', chapter1: 'chapters', roblox: 'chapter1', download: 'chapter1', newspaper: 'series' };
+  const LABEL = { series: 'SERIES', chapters: 'CHAPTERS', chapter1: 'CHAPTER 1', roblox: 'ROBLOX', download: 'DOWNLOAD', newspaper: 'NEWSPAPER' };
+  let current = 'series';
 
-function saveGames() { localStorage.setItem('rp_games', JSON.stringify(GAMES)); }
-
-function makeGameCard(g) {
-  const cls = {godot:'engine-godot',unity:'engine-unity',unreal:'engine-unreal'}[g.engine] || 'engine-godot';
-  const bg = {godot:'#1a2e1a',unity:'#1e1e2e',unreal:'#2a1a1a'}[g.engine] || '#1e1e2e';
-  const url = g.url || '#';
-  return `<a class="game-card" href="${url}" target="_blank" rel="noopener">
-    <div class="game-thumb-placeholder" style="background:${bg}">${g.emoji||'🎮'}</div>
-    <div class="game-info">
-      <div class="game-name">${g.name}</div>
-      <div class="game-meta">
-        <span class="game-engine ${cls}">${g.engine}</span>
-        <span class="play-btn">▶ Play</span>
-      </div>
-    </div>
-  </a>`;
-}
-
-function emptyState(msg, btnLabel, btnAction) {
-  return `<div class="empty-state" style="min-width:300px">
-    <div class="empty-icon">🎮</div>
-    <p>${msg}</p>
-    <button onclick="${btnAction}">${btnLabel}</button>
-  </div>`;
-}
-
-function renderHomeRow() {
-  const el = document.getElementById('home-all-row');
-  el.innerHTML = GAMES.length ? GAMES.map(makeGameCard).join('') : emptyState('No games yet. Be the first to submit!', 'Submit Your Game', "openSubmit()");
-  document.getElementById('stat-games').textContent = GAMES.length;
-}
-
-function renderGamesPage() {
-  const g = GAMES.filter(x => x.engine==='godot');
-  const u = GAMES.filter(x => x.engine==='unity');
-  const ur = GAMES.filter(x => x.engine==='unreal');
-  document.getElementById('gr-godot').innerHTML = g.length ? g.map(makeGameCard).join('') : emptyState('No Godot games yet.','Submit One',`openSubmit()`);
-  document.getElementById('gr-unity').innerHTML = u.length ? u.map(makeGameCard).join('') : emptyState('No Unity games yet.','Submit One',`openSubmit()`);
-  document.getElementById('gr-unreal').innerHTML = ur.length ? ur.map(makeGameCard).join('') : emptyState('No Unreal games yet.','Submit One',`openSubmit()`);
-}
-
-function renderTuts(list) {
-  const lc = {beginner:'level-beginner',intermediate:'level-intermediate',advanced:'level-advanced'};
-  const ec = {godot:'engine-godot',unity:'engine-unity',unreal:'engine-unreal'};
-  const tc = {godot:'background:linear-gradient(135deg,rgba(78,196,77,0.2),rgba(78,196,77,0.05))',unity:'background:linear-gradient(135deg,rgba(255,255,255,0.1),rgba(255,255,255,0.02))',unreal:'background:linear-gradient(135deg,rgba(239,68,68,0.2),rgba(239,68,68,0.05))',all:'background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(124,58,237,0.05))'};
-  document.getElementById('tut-grid').innerHTML = list.map(t => `
-    <div class="tut-card">
-      <div class="tut-thumb" style="${tc[t.engine]||tc.all}">
-        <span style="font-size:3rem">${t.emoji}</span>
-        <div class="tut-play">▶</div>
-      </div>
-      <div class="tut-body">
-        <div style="margin-bottom:8px">${t.engine!=='all'?`<span class="game-engine ${ec[t.engine]}" style="font-size:10px;padding:2px 7px;border-radius:99px">${t.engine}</span>`:'<span style="font-size:10px;padding:2px 7px;border-radius:99px;background:rgba(168,85,247,0.15);color:var(--accent3);border:1px solid rgba(168,85,247,0.3)">all engines</span>'}</div>
-        <h3>${t.title}</h3>
-        <p>${t.desc}</p>
-        <div class="tut-footer"><span class="tut-level ${lc[t.level]}">${t.level}</span><span class="tut-duration">⏱ ${t.mins} min</span></div>
-      </div>
-    </div>`).join('');
-}
-
-function filterTuts(cat, btn) {
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  if(cat==='all'){renderTuts(TUTORIALS);return;}
-  const byEngine=['godot','unity','unreal'];
-  let f = byEngine.includes(cat) ? TUTORIALS.filter(t=>t.engine===cat||t.engine==='all') : TUTORIALS.filter(t=>t.level===cat);
-  renderTuts(f);
-}
-
-function searchGames(q) {
-  const ids=['gs-godot','gs-unity','gs-unreal'];
-  const sr=document.getElementById('search-results');
-  if(!q.trim()){ids.forEach(id=>document.getElementById(id).style.display='');sr.style.display='none';return;}
-  ids.forEach(id=>document.getElementById(id).style.display='none');
-  const r=GAMES.filter(g=>g.name.toLowerCase().includes(q.toLowerCase())||g.engine.includes(q.toLowerCase()));
-  document.getElementById('search-label').textContent=`Results for "${q}" (${r.length})`;
-  document.getElementById('search-grid').innerHTML=r.length?r.map(makeGameCard).join(''):'<p style="color:var(--muted);padding:20px">No games found.</p>';
-  sr.style.display='block';
-}
-
-function filterEngine(engine, btn) {
-  document.querySelectorAll('.engine-tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  const all=['gs-godot','gs-unity','gs-unreal'];
-  if(engine==='all'){all.forEach(id=>document.getElementById(id).style.display='');return;}
-  all.forEach(id=>document.getElementById(id).style.display='none');
-  document.getElementById('gs-'+engine).style.display='';
-}
-
-function switchEngine(eng, btn) {
-  document.querySelectorAll('.eng-tab').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.eng-content').forEach(c=>c.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('eng-'+eng).classList.add('active');
-}
-
-function openSubmit() { document.getElementById('submitModal').classList.remove('hidden'); }
-function closeSubmit() { document.getElementById('submitModal').classList.add('hidden'); }
-
-function submitGame() {
-  const name = document.getElementById('f-name').value.trim();
-  const engine = document.getElementById('f-engine').value;
-  const url = document.getElementById('f-url').value.trim();
-  const desc = document.getElementById('f-desc').value.trim();
-  const emoji = document.getElementById('f-emoji').value.trim() || '🎮';
-  if(!name){alert('Please enter a game name!');return;}
-  if(!engine){alert('Please select an engine!');return;}
-  if(!url||!url.startsWith('http')){alert('Please enter a valid itch.io URL starting with https://');return;}
-  const game = {id:Date.now(), name, engine, url, desc, emoji};
-  GAMES.push(game);
-  saveGames();
-  renderHomeRow();
-  renderGamesPage();
-  closeSubmit();
-  document.getElementById('f-name').value='';
-  document.getElementById('f-engine').value='';
-  document.getElementById('f-url').value='';
-  document.getElementById('f-desc').value='';
-  document.getElementById('f-emoji').value='';
-  alert(`🎉 "${name}" is now live on Raking Productions!`);
-}
-
-function showPage(id, btn) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
-  if(btn){document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
-  window.scrollTo(0,0);
-}
-
-// ── LOADER ──
-const STATUSES=['INITIALIZING','LOADING ASSETS','SETTING UP RENDERER','LOADING SCRIPTS','PREPARING WORLD','FINALIZING'];
-let startTime = Date.now();
-const SPIN_MS = 10000, LOAD_MS = 12000;
-
-function tick() {
-  const el = Date.now() - startTime;
-  const spinner = document.getElementById('spinner');
-  const barWrap = document.getElementById('bar-wrap');
-  if(el < SPIN_MS){
-    spinner.style.display='block'; barWrap.style.display='none';
-    setTimeout(tick, 100);
-  } else {
-    const pct = Math.min(100, Math.round(((el-SPIN_MS)/LOAD_MS)*100));
-    spinner.style.display='none'; barWrap.style.display='block';
-    document.getElementById('loader-bar').style.width=pct+'%';
-    document.getElementById('loader-pct').textContent=pct+'%';
-    document.getElementById('loader-status').textContent=STATUSES[Math.floor(pct/20)]||'FINALIZING';
-    if(pct<100){setTimeout(tick,80);}
-    else {
-      setTimeout(()=>{
-        const l=document.getElementById('loader');
-        l.style.transition='opacity 0.6s'; l.style.opacity='0';
-        setTimeout(()=>{
-          l.style.display='none';
-          document.getElementById('app').style.display='block';
-          renderHomeRow(); renderGamesPage(); renderTuts(TUTORIALS);
-        },600);
-      },400);
-    }
+  function trailFor(screen) {
+    const trail = [];
+    let s = screen;
+    while (s) { trail.unshift(s); s = PARENT[s]; }
+    return trail;
   }
-}
-tick();
+
+  function renderTopbar(screen) {
+    const topbar = document.getElementById('topbar');
+    const crumbs = document.getElementById('crumbs');
+    if (screen === 'series') { topbar.classList.remove('show'); return; }
+    topbar.classList.add('show');
+    const trail = trailFor(screen);
+    crumbs.innerHTML = trail.map((s, i) => {
+      const isLast = i === trail.length - 1;
+      if (isLast) return '<span class="crumb-current">' + LABEL[s] + '</span>';
+      return '<button class="crumb-btn" data-target="' + s + '">' + LABEL[s] + '</button><span class="crumb-sep">/</span>';
+    }).join('');
+    crumbs.querySelectorAll('.crumb-btn').forEach(btn => {
+      btn.addEventListener('click', () => go(btn.dataset.target));
+    });
+  }
+
+  function updateQuicklink(screen) {
+    document.getElementById('newspaperLink').style.display = (screen === 'newspaper') ? 'none' : 'flex';
+  }
+
+  /* Runs the circular-spinner -> progress-bar loader sequence, then calls onDone() */
+  function runLoader(label, spinMs, barMs, onDone) {
+    const overlay = document.getElementById('loaderOverlay');
+    const mark = document.getElementById('loaderMark');
+    const spinner = document.getElementById('spinner');
+    const barWrap = document.getElementById('barWrap');
+    const fill = document.getElementById('loaderFill');
+    const statusEl = document.getElementById('loaderStatus');
+    const pctEl = document.getElementById('loaderPct');
+
+    mark.textContent = label;
+    overlay.classList.add('show');
+    spinner.style.display = 'block';
+    barWrap.style.display = 'none';
+    fill.style.width = '0%';
+    pctEl.textContent = '0%';
+    statusEl.textContent = STATUSES[0];
+
+    const start = Date.now();
+    function tick() {
+      const el = Date.now() - start;
+      if (el < spinMs) {
+        setTimeout(tick, 120);
+      } else if (el < spinMs + barMs) {
+        spinner.style.display = 'none';
+        barWrap.style.display = 'block';
+        const pct = Math.min(100, Math.round(((el - spinMs) / barMs) * 100));
+        fill.style.width = pct + '%';
+        pctEl.textContent = pct + '%';
+        statusEl.textContent = STATUSES[Math.min(STATUSES.length - 1, Math.floor(pct / (100 / STATUSES.length)))];
+        setTimeout(tick, 150);
+      } else {
+        fill.style.width = '100%';
+        pctEl.textContent = '100%';
+        overlay.classList.remove('show');
+        setTimeout(onDone, 320);
+      }
+    }
+    tick();
+  }
+
+  function go(target) {
+    if (target === current) return;
+    runLoader('LEAVING ' + LABEL[current], EXIT_SPIN_MS, EXIT_BAR_MS, () => {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-' + target).classList.add('active');
+      current = target;
+      renderTopbar(target);
+      updateQuicklink(target);
+      window.scrollTo(0, 0);
+      runLoader('ENTERING ' + LABEL[target], ENTER_SPIN_MS, ENTER_BAR_MS, () => {});
+    });
+  }
+
+  document.getElementById('backBtn').addEventListener('click', () => go(PARENT[current] || 'series'));
+  document.getElementById('heroBtn').addEventListener('click', () => go('chapters'));
+  document.getElementById('chapter1Btn').addEventListener('click', () => go('chapter1'));
+  document.getElementById('robloxBtn').addEventListener('click', () => go('roblox'));
+  document.getElementById('downloadBtn').addEventListener('click', () => go('download'));
+  document.getElementById('newspaperLink').addEventListener('click', () => go('newspaper'));
+
+  /* Initial page load also plays the ENTERING loader, over the Series screen */
+  runLoader('ENTERING ' + LABEL['series'], ENTER_SPIN_MS, ENTER_BAR_MS, () => {});
 </script>
 </body>
 </html>
